@@ -135,11 +135,18 @@ input[type=range] { flex: 1; min-width: 100px; }
     display: flex;
     flex-direction: column;
     justify-content: center;
+    margin-bottom: 0;
   }
  
-  /* Matchup Analysis — bar charts: stack to 1 column */
+  /* Matchup Analysis — bar charts: stack to 1 col, reduce height */
   .chart-grid {
     grid-template-columns: 1fr !important;
+  }
+  .chart-grid .chart-card {
+    margin-bottom: 0;
+  }
+  .chart-grid .chart-card > div[style] {
+    height: 90px !important;
   }
  
   /* Matchup Analysis — bottom two panels: stack */
@@ -147,13 +154,13 @@ input[type=range] { flex: 1; min-width: 100px; }
     grid-template-columns: 1fr !important;
   }
  
-  /* Matchup Analysis — trend table: show all columns, smaller font */
+  /* Matchup Analysis — trend table: all columns, smaller font */
   .trend-col-5,
   .trend-col-10,
   .trend-col-15,
   .trend-col-30 {
     font-size: 10px !important;
-    padding: 4px 3px !important;
+    padding: 4px 2px !important;
   }
 }
  
