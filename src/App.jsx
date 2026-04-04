@@ -4,6 +4,7 @@ import MatchupAnalysis from './MatchupAnalysis'
 import PlayerReportCard from './PlayerReportCard'
 import StatLeaders from './StatLeaders'
 import './index.css'
+import './App.css'
 
 export default function App() {
   const [page, setPage] = useState('leaders')

@@ -332,7 +332,7 @@ export default function MatchupAnalysis() {
       {!loading && status && <p className="empty">{status}</p>}
  
       {!loading && groupData && leagueAvgs && <>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: 8, marginBottom: '0.5rem' }}>
+        <div className="grade-grid" style={{ gap: 8, marginBottom: '0.5rem' }}>
           {Object.keys(POS_GROUPS).map(group => {
             const pct = (leagueAvgs[group] && groupData[group]) ? (groupData[group] - leagueAvgs[group]) / leagueAvgs[group] * 100 : 0
             const { grade, color, bg, label } = getGrade(pct)
@@ -345,7 +345,7 @@ export default function MatchupAnalysis() {
               </div>
             )
           })}
-          <div className="chart-card" style={{ padding: '0.6rem', marginBottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8 }}>
+          <div className="chart-card">
             {bestMatchup && (
               <div>
                 <div style={{ fontSize: 10, color: '#888', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.4px' }}>Best target</div>
@@ -363,7 +363,7 @@ export default function MatchupAnalysis() {
           </div>
         </div>
  
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: '0.5rem' }}>
+        <div className="chart-grid">
           {Object.keys(POS_GROUPS).map(group => (
             <div key={group} className="chart-card" style={{ marginBottom: 0 }}>
               <div className="chart-title">{group} — % vs league avg ({STAT_LABELS[stat]})</div>
@@ -374,7 +374,7 @@ export default function MatchupAnalysis() {
           ))}
         </div>
  
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div className="bottom-grid">
           {multiStatData && (() => {
             const { oppStats: opp, leagueStats: lg, gameIdsSortedByDate } = multiStatData
             const windows = [
@@ -392,7 +392,7 @@ export default function MatchupAnalysis() {
                     <tr style={{ borderBottom: '1px solid #eee' }}>
                       <th style={{ textAlign: 'left', padding: '4px 6px', color: '#888', fontSize: 11 }}>Position</th>
                       {windows.map(w => (
-                        <th key={w.label} style={{ textAlign: 'right', padding: '4px 6px', color: '#888', fontSize: 11 }}>{w.label}</th>
+                        <th key={w.label} className={`trend-col-${w.games}`} style={{ textAlign: 'right', padding: '4px 6px', color: '#888', fontSize: 11 }}>{w.label}</th>
                       ))}
                     </tr>
                   </thead>
@@ -420,13 +420,13 @@ export default function MatchupAnalysis() {
                             }
                             const oppAvg = calcAvg(Object.values(oppByGameTeam))
                             if (oppAvg === null) return (
-                              <td key={w.label} style={{ padding: '6px 6px', textAlign: 'right', color: '#ccc', fontSize: 11 }}>n/a</td>
+                              <td key={w.label} className={`trend-col-${w.games}`} style={{ padding: '6px 6px', textAlign: 'right', color: '#ccc', fontSize: 11 }}>n/a</td>
                             )
                             const pct = lgAvg ? (oppAvg - lgAvg) / lgAvg * 100 : 0
                             const color = pct >= 5 ? '#3b6d11' : pct <= -5 ? '#a32d2d' : '#555'
                             const arrow = pct >= 5 ? '↑' : pct <= -5 ? '↓' : '–'
                             return (
-                              <td key={w.label} style={{ padding: '6px 6px', textAlign: 'right', color, fontWeight: Math.abs(pct) >= 5 ? 700 : 400 }}>
+                              <td key={w.label} className={`trend-col-${w.games}`} style={{ padding: '6px 6px', textAlign: 'right', color, fontWeight: Math.abs(pct) >= 5 ? 700 : 400 }}>
                                 {arrow} {pct >= 0 ? '+' : ''}{pct.toFixed(1)}%
                               </td>
                             )
