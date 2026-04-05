@@ -93,7 +93,7 @@ export default function MatchupAnalysis() {
   const leagueChartRef = useRef(null)
   const leagueChartInst = useRef(null)
   const chartRefs = { Guards: guardsRef, Wings: wingsRef, Bigs: bigsRef }
- 
+  
   const loadData = useCallback(async () => {
     if (!teamId) return
     setLoading(true)
@@ -210,7 +210,7 @@ export default function MatchupAnalysis() {
         .map(([name, vals]) => ({ name, avg: calcAvg(vals) ?? 0 }))
         .filter(t => t.avg > 0)
         .sort((a, b) => b.avg - a.avg)
- 
+      
       setGroupData(oppByGroup)
       setLeagueAvgs(leagueByGroup)
       setMultiStatData({ oppStats, leagueStats, gameIdsSortedByDate })
