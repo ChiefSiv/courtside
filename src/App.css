@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Inter', sans-serif; background: #f8f8f8; color: #111; }
+body { font-family: 'Inter', sans-serif; background: #f8f8f8; color: #111; overflow-x: hidden; }
  
 .header {
   background: white; border-bottom: 1px solid #eee;
@@ -16,11 +16,11 @@ body { font-family: 'Inter', sans-serif; background: #f8f8f8; color: #111; }
 }
 .nav-btn:hover { background: #f0f0f0; color: #111; }
 .nav-btn.active { background: #f0f0f0; color: #111; font-weight: 600; }
-.main { padding: 1rem 1.5rem; max-width: 1100px; margin: 0 auto; }
+.main { padding: 1rem 1.5rem; max-width: 1100px; margin: 0 auto; overflow: hidden; }
 .main.wide { max-width: none; width: 100%; padding: 1rem 1.5rem; }
 .page-title { font-size: 18px; font-weight: 600; margin-bottom: 1.25rem; }
  
-.ctrl-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1rem; align-items: flex-end; }
+.ctrl-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1rem; align-items: flex-end; max-width: 100%; }
 .ctrl-group { display: flex; flex-direction: column; gap: 4px; }
 .ctrl-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; }
 input[type=text], input[type=number], select {
@@ -77,9 +77,14 @@ input[type=text]:focus, select:focus { outline: none; border-color: #aaa; }
 input[type=range] { flex: 1; min-width: 100px; }
  
 /* ── Matchup grid layouts (desktop defaults) ─────────────────────────────── */
-.grade-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 0.5rem; align-items: stretch; }
-.chart-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 0.5rem; }
+.grade-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.5fr); gap: 8px; margin-bottom: 0.5rem; align-items: stretch; width: 100%; }
+.chart-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 0.5rem; width: 100%; }
 .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* Matchup Analysis — tighter vertical spacing */
+.grade-grid { margin-bottom: 0.25rem; }
+.chart-grid { margin-bottom: 0.25rem; }
+.bottom-grid { margin-bottom: 0.25rem; }
  
 /* ── Mobile styles ────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
@@ -144,9 +149,16 @@ input[type=range] { flex: 1; min-width: 100px; }
   }
   .chart-grid .chart-card {
     margin-bottom: 0;
+    padding: 0.5rem 0.75rem !important;
+    overflow: hidden !important;
   }
   .chart-grid .chart-card > div[style] {
     height: 90px !important;
+  }
+  .chart-grid .chart-title {
+    font-size: 11px !important;
+    white-space: normal !important;
+    word-break: break-word !important;
   }
  
   /* Matchup Analysis — bottom two panels: stack */
@@ -154,7 +166,7 @@ input[type=range] { flex: 1; min-width: 100px; }
     grid-template-columns: 1fr !important;
   }
  
-  /* Matchup Analysis — trend table: all columns, smaller font */
+  /* Matchup Analysis — trend table: smaller font */
   .trend-col-5,
   .trend-col-10,
   .trend-col-15,
