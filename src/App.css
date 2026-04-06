@@ -174,6 +174,31 @@ input[type=range] { flex: 1; min-width: 100px; }
     font-size: 10px !important;
     padding: 4px 2px !important;
   }
+
+  /* Stat leaders — tighter columns on mobile */
+  table { font-size: 10px !important; }
+  table td, table th { padding: 4px 3px !important; }
+  table td:nth-child(2), table th:nth-child(2) { 
+    white-space: normal !important; 
+    min-width: 80px !important;
+    max-width: 100px !important;
+  }
+
+  .stat-leaders-table {
+    min-width: 0 !important;
+    width: 100% !important;
+    font-size: 13px !important;
+  }
+
+  .stat-leaders-table th {
+    text-align: center !important;
+  }
+  .stat-leaders-table td {
+    text-align: center !important;
+  }
+
+  .hide-mobile { display: none; }
+
 }
  
 .metric-card div { font-weight: 700 !important; }

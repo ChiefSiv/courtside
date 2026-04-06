@@ -6,7 +6,7 @@ import { createClient } from '@supabase/supabase-js'
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY)
 const API_KEY = process.env.BALLDONTLIE_API_KEY
  
-const SEASONS = [2020, 2021, 2022, 2023, 2024, 2025]
+const SEASONS = [2025]
 const delay = ms => new Promise(r => setTimeout(r, ms))
  
 async function bdFetch(path) {
