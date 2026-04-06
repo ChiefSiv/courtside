@@ -25,7 +25,7 @@ export default function BettingAnalysis() {
   const [results, setResults] = useState([])
   const [player, setPlayer] = useState(null)
   const [stat, setStat] = useState('pts')
-  const [season, setSeason] = useState('2024')
+  const [season, setSeason] = useState('2025')
   const [nGames, setNGames] = useState(10)
   const [gameType, setGameType] = useState('all')   // 'all' | 'regular' | 'playoffs'
   const [homeAway, setHomeAway] = useState('all')   // 'all' | 'home' | 'away'
