@@ -5,7 +5,7 @@
  * Shows the full multiplier table in the expanded card view.
  * Matches spec layout exactly.
  */
-export function ProjectionBreakdown({ projection, ev, line, stat }) {
+export function ProjectionBreakdown({ projection, ev, line, stat, kelly }) {
   if (!projection) return null;
 
   const { baseline, adjustments, finalProjection, usageShift, confidence } = projection;
@@ -79,6 +79,17 @@ export function ProjectionBreakdown({ projection, ev, line, stat }) {
               {ev.evPct > 0 ? '+' : ''}{ev.evPct.toFixed(1)}%
             </td>
           </tr>
+
+          {kelly && !kelly.isNoBet && (
+            <tr style={{ borderTop: '1px solid #e5e7eb' }}>
+              <td style={{ fontWeight: 700, color: '#111827', paddingTop: 8 }}>
+                Recommended Bet
+              </td>
+              <td style={{ textAlign: 'right', fontWeight: 800, color: '#1d4ed8', paddingTop: 8 }}>
+                {kelly.units}u
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
 

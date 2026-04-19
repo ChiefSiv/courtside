@@ -25,20 +25,23 @@ function formatGameTime(dateStr) {
   }
 }
 
-// ---- Compact row (new default) -----------------------------
+// ---- Compact row -------------------------------------------
 
-function BetCardCompact({ pick, onExpand, onAddParlay, isInParlay }) {
+function BetCardCompact({ pick, onExpand, onAddParlay, isInParlay, kelly }) {
   const {
     playerName, playerTeam, opponentTeam,
     stat, lineValue,
     bestBook, bestPriceAlert,
-    ev, hitRate, composite, availability,
+    ev, hitRate, composite,
     lineMovement,
   } = pick;
 
   const statLabel = `${ev.direction === 'over' ? 'O' : 'U'} ${lineValue} ${stat}`;
   const bestOdds  = bestBook?.isMilestone ? bestBook.overOdds
     : ev.direction === 'over' ? bestBook?.overOdds : bestBook?.underOdds;
+
+  const dirPct  = ev.direction === 'under' ? (hitRate.under?.pct ?? 0) : (hitRate.over?.pct ?? hitRate.pct ?? 0);
+  const dirHits = ev.direction === 'under' ? (hitRate.under?.hits ?? 0) : (hitRate.over?.hits ?? hitRate.hits ?? 0);
 
   return (
     <div className="bb-compact-row" onClick={onExpand}>
@@ -48,11 +51,7 @@ function BetCardCompact({ pick, onExpand, onAddParlay, isInParlay }) {
         <div className="bb-compact-avatar">{getInitials(playerName)}</div>
         <div className="bb-compact-player-info">
           <div className="bb-compact-name">{playerName}</div>
-          <div className="bb-compact-meta">
-            {playerTeam} · vs {opponentTeam}
-  
-          </div>
-          {/* Pick label shown inline on mobile */}
+          <div className="bb-compact-meta">{playerTeam} · vs {opponentTeam}</div>
           <div className="bb-compact-pick-mobile">{statLabel}</div>
         </div>
       </div>
@@ -67,25 +66,22 @@ function BetCardCompact({ pick, onExpand, onAddParlay, isInParlay }) {
         )}
       </div>
 
-      {/* EV */}
+      {/* EV + units */}
       <div className="bb-compact-ev">
         <EVBadge evPct={ev.evPct} />
         <StarRating stars={composite.stars} tiny />
+        {kelly && !kelly.isNoBet && (
+          <span className="bb-kelly-units">{kelly.units}u</span>
+        )}
       </div>
 
-      {/* Hit rate — directional */}
-      {(() => {
-        const dirPct = ev.direction === 'under' ? (hitRate.under?.pct ?? 0) : (hitRate.over?.pct ?? hitRate.pct ?? 0);
-        const dirHits = ev.direction === 'under' ? (hitRate.under?.hits ?? 0) : (hitRate.over?.hits ?? hitRate.hits ?? 0);
-        return (
-          <div className="bb-compact-hitrate">
-            <span className="bb-compact-hr-pct" style={{ color: dirPct >= 70 ? '#10b981' : dirPct >= 55 ? '#f59e0b' : '#ef4444' }}>
-              {dirPct}%
-            </span>
-            <span className="bb-compact-hr-sub">{dirHits}/{hitRate.total}</span>
-          </div>
-        );
-      })()}
+      {/* Hit rate */}
+      <div className="bb-compact-hitrate">
+        <span className="bb-compact-hr-pct" style={{ color: dirPct >= 70 ? '#10b981' : dirPct >= 55 ? '#f59e0b' : '#ef4444' }}>
+          {dirPct}%
+        </span>
+        <span className="bb-compact-hr-sub">{dirHits}/{hitRate.total}</span>
+      </div>
 
       {/* Best odds */}
       <div className="bb-compact-odds">
@@ -106,15 +102,13 @@ function BetCardCompact({ pick, onExpand, onAddParlay, isInParlay }) {
         >
           {isInParlay ? '✓' : '+'}
         </button>
-        <button className="bb-expand-chevron" onClick={onExpand}>
-          ▾
-        </button>
+        <button className="bb-expand-chevron" onClick={onExpand}>▾</button>
       </div>
     </div>
   );
 }
 
-// ---- Full collapsed card (used inside expanded) ------------
+// ---- Full collapsed card -----------------------------------
 
 function BetCardCollapsed({ pick, onExpand, onAddParlay, isInParlay }) {
   const {
@@ -122,13 +116,16 @@ function BetCardCollapsed({ pick, onExpand, onAddParlay, isInParlay }) {
     gameTime, stat, lineValue,
     bookOdds, bestBook, bestPriceAlert,
     ev, hitRate, matchup, composite,
-    reasoningText, lineMovement, availability,
+    reasoningText, lineMovement,
     isStale, staleReason, generatedAt, oddsLastUpdated,
   } = pick;
 
   const statLabel = ev.direction === 'over'
     ? `Over ${lineValue} ${stat}`
     : `Under ${lineValue} ${stat}`;
+
+  const dirPct  = ev.direction === 'under' ? (hitRate.under?.pct ?? 0) : (hitRate.over?.pct ?? hitRate.pct ?? 0);
+  const dirHits = ev.direction === 'under' ? (hitRate.under?.hits ?? 0) : (hitRate.over?.hits ?? hitRate.hits ?? 0);
 
   return (
     <div className="bb-card-collapsed" onClick={onExpand}>
@@ -150,7 +147,6 @@ function BetCardCollapsed({ pick, onExpand, onAddParlay, isInParlay }) {
 
         <div className="bb-card-stat-line">
           <span>{statLabel}</span>
-
         </div>
 
         <div className="bb-odds-row" onClick={e => e.stopPropagation()}>
@@ -165,7 +161,7 @@ function BetCardCollapsed({ pick, onExpand, onAddParlay, isInParlay }) {
               </span>
             );
           })}
-          {bestPriceAlert && bestPriceAlert.odds != null && (
+          {bestPriceAlert?.odds != null && (
             <span className="bb-better-elsewhere">
               Better at {bestPriceAlert.vendor}: {formatOdds(bestPriceAlert.odds)}
             </span>
@@ -176,11 +172,7 @@ function BetCardCollapsed({ pick, onExpand, onAddParlay, isInParlay }) {
           <EVBadge evPct={ev.evPct} />
           <StarRating stars={composite.stars} />
           <div className="bb-hit-rate">
-            {(() => {
-              const dirPct  = ev.direction === 'under' ? (hitRate.under?.pct ?? 0) : (hitRate.over?.pct ?? hitRate.pct ?? 0);
-              const dirHits = ev.direction === 'under' ? (hitRate.under?.hits ?? 0) : (hitRate.over?.hits ?? hitRate.hits ?? 0);
-              return <><span>{dirHits}/{hitRate.total}</span> — {dirPct}%</>;
-            })()}
+            <span>{dirHits}/{hitRate.total}</span> — {dirPct}%
           </div>
           <MatchupBadge matchup={matchup} />
         </div>
@@ -215,7 +207,7 @@ function BetCardCollapsed({ pick, onExpand, onAddParlay, isInParlay }) {
 
 // ---- Expanded detail panel ---------------------------------
 
-function BetCardExpanded({ pick, onCollapse }) {
+function BetCardExpanded({ pick, onCollapse, kelly }) {
   const { stat, lineValue, ev, projection, hitRate } = pick;
 
   const comparableGames = hitRate.games.filter(g => g.hitLine).slice(0, 5);
@@ -226,7 +218,7 @@ function BetCardExpanded({ pick, onCollapse }) {
   return (
     <div className="bb-card-expanded">
       <div className="bb-expanded-grid">
-        <ProjectionBreakdown projection={projection} ev={ev} line={lineValue} stat={stat} />
+        <ProjectionBreakdown projection={projection} ev={ev} line={lineValue} stat={stat} kelly={kelly} />
         <div className="bb-comparable">
           {comparableAvg && (
             <div className="bb-comparable-note">
@@ -262,10 +254,9 @@ function BetCardExpanded({ pick, onCollapse }) {
 
 // ---- Main export -------------------------------------------
 
-export function BetCard({ pick, onAddParlay, isInParlay, compact = false, isExpanded, onToggleExpand }) {
+export function BetCard({ pick, onAddParlay, isInParlay, compact = false, isExpanded, onToggleExpand, kelly }) {
   const [localExpanded, setLocalExpanded] = useState(false);
-  // Use controlled state if provided (prevents reset on refetch), else use local
-  const expanded = isExpanded !== undefined ? isExpanded : localExpanded;
+  const expanded     = isExpanded !== undefined ? isExpanded : localExpanded;
   const toggleExpand = onToggleExpand ?? (() => setLocalExpanded(e => !e));
 
   if (compact && !expanded) {
@@ -276,6 +267,7 @@ export function BetCard({ pick, onAddParlay, isInParlay, compact = false, isExpa
           onExpand={toggleExpand}
           onAddParlay={onAddParlay}
           isInParlay={isInParlay}
+          kelly={kelly}
         />
       </div>
     );
@@ -290,7 +282,7 @@ export function BetCard({ pick, onAddParlay, isInParlay, compact = false, isExpa
           onAddParlay={onAddParlay}
           isInParlay={isInParlay}
         />
-        <BetCardExpanded pick={pick} onCollapse={toggleExpand} />
+        <BetCardExpanded pick={pick} onCollapse={toggleExpand} kelly={kelly} />
       </div>
     );
   }
@@ -303,7 +295,7 @@ export function BetCard({ pick, onAddParlay, isInParlay, compact = false, isExpa
         onAddParlay={onAddParlay}
         isInParlay={isInParlay}
       />
-      {expanded && <BetCardExpanded pick={pick} onCollapse={toggleExpand} />}
+      {expanded && <BetCardExpanded pick={pick} onCollapse={toggleExpand} kelly={kelly} />}
     </div>
   );
 }

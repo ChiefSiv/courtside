@@ -10,6 +10,8 @@ import { SettingsModal }            from './components/bestbets/SettingsModal.js
 import { ParlayBuilderDrawer }      from './components/bestbets/ParlayBuilderDrawer.jsx';
 import { EmailCapture }             from './components/bestbets/EmailCapture.jsx';
 import { BetCard }                  from './components/bestbets/BetCard.jsx';
+import { BankrollPanel }            from './components/bestbets/BankrollPanel.jsx';
+import { useBankroll }              from './hooks/useBankroll.js';
 import { StretchPicksBanner, LoadingSkeleton, EmptyState, StaleBanner } from './components/bestbets/SmallComponents.jsx';
 
 import './BestBets.css';
@@ -108,13 +110,15 @@ function TabBar({ activeTab, onTabChange, counts }) {
 
 const DEFAULT_SHOW = 20;
 
-function PicksTab({ picks, onAddParlay, parlayPickIds, expandedPicks, onToggleExpand }) {
+function PicksTab({ picks, onAddParlay, parlayPickIds, expandedPicks, onToggleExpand, getKelly }) {
   const [showAll, setShowAll] = useState(false);
-  const isStretch = picks.some(p => p.isStretchPick);
-  const displayed = showAll ? picks : picks.slice(0, DEFAULT_SHOW);
-  const hasMore   = picks.length > DEFAULT_SHOW;
+  // Filter out picks where Kelly says no bet
+  const validPicks = picks.filter(p => !getKelly?.(p)?.isNoBet);
+  const isStretch  = validPicks.some(p => p.isStretchPick);
+  const displayed  = showAll ? validPicks : validPicks.slice(0, DEFAULT_SHOW);
+  const hasMore    = validPicks.length > DEFAULT_SHOW;
 
-  if (picks.length === 0) {
+  if (validPicks.length === 0) {
     return (
       <div className="bb-empty-tab">
         <div className="bb-empty-tab-icon">🔍</div>
@@ -148,6 +152,7 @@ function PicksTab({ picks, onAddParlay, parlayPickIds, expandedPicks, onToggleEx
             compact
             isExpanded={expandedPicks?.has(pick.pickId)}
             onToggleExpand={() => onToggleExpand?.(pick.pickId)}
+            kelly={getKelly?.(pick)}
           />
         ))}
       </div>
@@ -190,6 +195,7 @@ export function BestBetsPage({ onNavigate = () => {} }) {
   const [sortKey,      setSortKey]      = useState('composite');
   const [gameFilter,   setGameFilter]   = useState('all');
   const [expandedPicks, setExpandedPicks] = useState(new Set());
+  const { bankroll, setBankroll, getKelly, getParlayKelly } = useBankroll();
 
   const {
     straightBets,
@@ -290,6 +296,7 @@ export function BestBetsPage({ onNavigate = () => {} }) {
       </div>
 
       <PerformanceSummaryWidget />
+      <BankrollPanel bankroll={bankroll} onChange={setBankroll} />
       <StaleBanner staleBanner={staleBanner} />
 
       {errors.map((err, i) => (
@@ -300,7 +307,7 @@ export function BestBetsPage({ onNavigate = () => {} }) {
 
       <FilterBar filters={filters} onChange={setFilters} />
 
-      {!isLoading && <FeaturedParlay parlay={featuredParlay} />}
+      {!isLoading && <FeaturedParlay parlay={featuredParlay} getParlayKelly={getParlayKelly} />}
 
       <div className="bb-tabs-container">
         <TabBar activeTab={activeTab} onTabChange={setActiveTab} counts={counts} />
@@ -322,6 +329,7 @@ export function BestBetsPage({ onNavigate = () => {} }) {
                 next.has(id) ? next.delete(id) : next.add(id);
                 return next;
               })}
+              getKelly={getKelly}
             />
           </div>
         )}
