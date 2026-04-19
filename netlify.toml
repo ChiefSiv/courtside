@@ -1,13 +1,26 @@
 [build]
   command = "npm run build"
   publish = "dist"
+  functions = "netlify/functions"
 
 [functions]
   directory = "netlify/functions"
+  node_bundler = "esbuild"
 
 [[redirects]]
   from = "/api/*"
   to = "https://api.balldontlie.io/:splat"
   status = 200
   force = true
-  headers = {Authorization = "3b13604b-63be-47ce-a594-bca471752359"}
+  headers = {Authorization = "$BDL_API_KEY"}
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[functions."capture-closing-lines"]
+  schedule = "*/5 * * * *"
+
+[functions."grade-picks"]
+  schedule = "0 8 * * *"
