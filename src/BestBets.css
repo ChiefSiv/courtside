@@ -1549,3 +1549,13 @@
   .bb-bankroll-presets { gap: 4px; }
   .bb-bankroll-preset { font-size: 0.72rem; padding: 3px 9px; }
 }
+
+.bb-bankroll-disclaimer {
+  font-size: 0.7rem;
+  color: #d97706;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 4px;
+  padding: 5px 8px;
+  margin-top: 2px;
+}

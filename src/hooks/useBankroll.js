@@ -34,7 +34,7 @@ export function useBankroll() {
       section:      pick.section ?? 'straight',
       bankroll,
       minBet:       1,
-      maxBetPct:    0.10,
+      maxBetPct:    0.05,
     });
     return result;
   }, [bankroll]);

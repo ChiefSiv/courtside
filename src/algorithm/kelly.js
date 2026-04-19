@@ -36,7 +36,7 @@ export function calculateKelly({
   section    = 'straight',
   bankroll   = 1000,
   minBet     = 1,
-  maxBetPct  = 0.10,
+  maxBetPct  = 0.05,
 }) {
   const decimal = americanToDecimal(americanOdds);
   const b = decimal - 1;   // net payout per unit staked

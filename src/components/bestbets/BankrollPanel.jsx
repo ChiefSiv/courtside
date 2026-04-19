@@ -56,7 +56,10 @@ export function BankrollPanel({ bankroll, onChange }) {
             <button className="bb-bankroll-set-btn" onClick={handleCustomSubmit}>Set</button>
           </div>
           <div className="bb-bankroll-note">
-            1 unit = 1% = ${(bankroll * 0.01).toFixed(0)}. Kelly sizing applied per section.
+            1 unit = 1% = ${(bankroll * 0.01).toFixed(0)}. Quarter-Kelly sizing, max 5% per bet.
+          </div>
+          <div className="bb-bankroll-disclaimer">
+            ⚠ Unit sizes are per individual pick. Total daily exposure is not capped — manage your own risk.
           </div>
         </div>
       )}
