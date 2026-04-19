@@ -86,7 +86,7 @@ export function ProjectionBreakdown({ projection, ev, line, stat, kelly }) {
                 Recommended Bet
               </td>
               <td style={{ textAlign: 'right', fontWeight: 800, color: '#1d4ed8', paddingTop: 8 }}>
-                {kelly.units}u
+                {kelly.units}u <span style={{ fontWeight: 500, color: '#6b7280', fontSize: '0.85rem' }}>(${kelly.dollars})</span>
               </td>
             </tr>
           )}

@@ -71,7 +71,7 @@ function BetCardCompact({ pick, onExpand, onAddParlay, isInParlay, kelly }) {
         <EVBadge evPct={ev.evPct} />
         <StarRating stars={composite.stars} tiny />
         {kelly && !kelly.isNoBet && (
-          <span className="bb-kelly-units">{kelly.units}u</span>
+          <span className="bb-kelly-units">{kelly.units}u / ${kelly.dollars}</span>
         )}
       </div>
 

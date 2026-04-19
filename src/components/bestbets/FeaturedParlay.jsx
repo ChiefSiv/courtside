@@ -2,8 +2,9 @@
 
 function formatOdds(o) { return o > 0 ? `+${o}` : `${o}`; }
 
-export function FeaturedParlay({ parlay }) {
+export function FeaturedParlay({ parlay, getParlayKelly }) {
   if (!parlay) return null;
+  const parlayKelly = getParlayKelly?.(parlay.legs);
 
   return (
     <div className="bb-featured-parlay">
@@ -21,6 +22,9 @@ export function FeaturedParlay({ parlay }) {
         <span>EV: <strong style={{ color: parlay.evPct > 0 ? '#16a34a' : '#6b7280' }}>
           {parlay.evPct > 0 ? '+' : ''}{parlay.evPct.toFixed(1)}%
         </strong></span>
+        {parlayKelly && !parlayKelly.isNoBet && (
+          <span>Bet: <strong style={{ color: '#1d4ed8' }}>{parlayKelly.units}u (${parlayKelly.dollars})</strong></span>
+        )}
         <span className={`bb-parlay-correlation ${parlay.correlationLabel}`}>
           {parlay.correlationLabel} correlation
         </span>
