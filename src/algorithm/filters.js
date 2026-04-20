@@ -31,14 +31,14 @@ function filterStraight(picks, stretch) {
       const hitRateOk = stretch
         ? hrPct >= 30
         : (isOver ? hrPct >= 50 : hrPct >= 60);
-      const matchupOk = isOver ? p.matchup.qualifies : true;
 
+      // Matchup influences composite score but is NOT a hard gate —
+      // a strong EV + hit rate pick shouldn't be eliminated by a neutral matchup
       return (
         !p.bestBook?.isMilestone &&
         (stretch || p.ev.evPct >= 3) &&
         hitRateOk &&
         probOk &&
-        matchupOk &&
         p.availability.passes
       );
     })

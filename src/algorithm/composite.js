@@ -1,5 +1,5 @@
 // src/algorithm/composite.js
-// Weights: EV% 70%, Hit rate 10%, Matchup strength 10%, Form 10%
+// Weights: EV% 60%, Hit rate 15%, Matchup strength 15%, Form 10%
 // Stars: composite / 2 → 0–5, half-star precision
 
 const EV_MAX = 15; // EV above 15% = 10/10
@@ -20,7 +20,7 @@ export function calculateCompositeScore({ evPct, hitRate, matchupStrength, formS
   const matchupScore  = Math.min(10, Math.max(0, matchupStrength));
   const formScore     = Math.min(10, Math.max(0, formStrength));
 
-  const composite = evScore * 0.7 + hitRateScore * 0.1 + matchupScore * 0.1 + formScore * 0.1;
+  const composite = evScore * 0.6 + hitRateScore * 0.15 + matchupScore * 0.15 + formScore * 0.1;
   const clamped   = Math.min(10, Math.max(0, composite));
 
   // Round to nearest 0.5 for half-star precision

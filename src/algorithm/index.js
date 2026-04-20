@@ -15,6 +15,7 @@ import { applySectionFilters, rankBySection } from './filters.js';
 import { generateReasoningText }     from './reasoning.js';
 import { selectFeaturedParlay }      from './parlay.js';
 import { getLineMovement }           from './lineMovement.js';
+import { calculateKelly }            from './kelly.js';
 
 const COMBO_STATS = new Set(['PRA', 'PR', 'PA', 'RA', 'DD']);
 
@@ -119,7 +120,7 @@ function findBestPriceAlert(allOdds, playerId, propType, currentBestBook, direct
  * }} input
  * @returns {{ straightBets, parlayLegs, longshots, featuredParlay }}
  */
-export function runAlgorithmPipeline({ odds, injuries, games, defensiveStats, playerStats, filters, settings }) {
+export function runAlgorithmPipeline({ odds, injuries, games, defensiveStats, positionalMatchup, playerStats, filters, settings }) {
   const now = new Date().toISOString();
 
   // Index data
@@ -194,14 +195,16 @@ export function runAlgorithmPipeline({ odds, injuries, games, defensiveStats, pl
     // --- Matchup ---
     const opponentTeamId  = getOpponentTeamId(game, teamAbbr);
     const opponentDefStats = defensiveMap.get(opponentTeamId);
-    const matchup = evaluateMatchup({ statType, position, opponentDefStats, allDefensiveStats: defensiveStats });
+    const matchup = evaluateMatchup({ statType, position, opponentTeamId, positionalMatchup, opponentDefStats, allDefensiveStats: defensiveStats });
 
     // --- Form (placeholder — recomputed after EV direction is known) ---
     const form = evaluateForm({ stats, statType, lineValue, direction: 'over' });
 
     // --- Projection ---
     // Derive matchup multiplier from opponentAllowsPct
-    const matchupMultiplier = matchup.qualifies
+    // opponentAllowsPct is already a % value (e.g. 5.8 = 5.8% above avg)
+    // Apply a modest multiplier: +10% matchup advantage → ×1.05 projection boost
+    const matchupMultiplier = matchup.opponentAllowsPct !== 0
       ? 1 + (matchup.opponentAllowsPct / 100) * 0.5
       : 1.0;
 
@@ -247,6 +250,17 @@ export function runAlgorithmPipeline({ odds, injuries, games, defensiveStats, pl
       hitRate:        hitRate.pct,
       matchupStrength: matchup.strength,
       formStrength:   form.strength,
+    });
+
+    // --- Kelly bet sizing ---
+    const kellyOdds = ev.direction === 'over' ? bestBook.overOdds : (bestBook.underOdds ?? bestBook.overOdds);
+    const kelly = calculateKelly({
+      modelProb:    ev.modelProb,
+      americanOdds: kellyOdds,
+      section:      'straight', // overwritten by applySectionFilters
+      bankroll:     1000,       // placeholder — replaced at render time with user's bankroll
+      minBet:       1,
+      maxBetPct:    0.10,
     });
 
     // --- Reasoning ---
@@ -298,6 +312,7 @@ export function runAlgorithmPipeline({ odds, injuries, games, defensiveStats, pl
       composite,
       reasoningText,
       lineMovement,
+      kelly,
       section:          'straight', // overwritten by applySectionFilters
       isStretchPick:    false,
       generatedAt:      now,

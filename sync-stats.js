@@ -3,7 +3,7 @@ config()
 import fetch from 'node-fetch'
 import { createClient } from '@supabase/supabase-js'
  
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY)
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 const API_KEY = process.env.BALLDONTLIE_API_KEY
  
 const SEASONS = [2025]

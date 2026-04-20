@@ -7,6 +7,7 @@ import {
   fetchSchedule,
   fetchDefensiveStats,
   fetchPlayerStats,
+  fetchPositionalMatchup,
 } from '../api.js';
 import { runAlgorithmPipeline } from '../algorithm/index.js';
 import { chunkArray } from '../algorithm/utils.js';
@@ -55,6 +56,16 @@ export function useDefensiveStats() {
   });
 }
 
+export function usePositionalMatchup() {
+  return useQuery({
+    queryKey:        ['positionalMatchup'],
+    queryFn:         fetchPositionalMatchup,
+    staleTime:       6 * 60 * 60_000,
+    refetchInterval: 6 * 60 * 60_000,
+    retry: 2,
+  });
+}
+
 function useBatchPlayerStats(playerIds) {
   return useQuery({
     queryKey: ['batchPlayerStats', playerIds.join(',')],
@@ -97,7 +108,8 @@ export function useBestBets(filters, settings) {
   const oddsQuery      = useOdds();
   const injuriesQuery  = useInjuries();
   const scheduleQuery  = useSchedule();
-  const defensiveQuery = useDefensiveStats();
+  const defensiveQuery     = useDefensiveStats();
+  const positionalQuery    = usePositionalMatchup();
 
   const playerIds = useMemo(() => {
     if (!oddsQuery.data?.data) return [];
@@ -111,6 +123,7 @@ export function useBestBets(filters, settings) {
     injuriesQuery.isLoading  ||
     scheduleQuery.isLoading  ||
     defensiveQuery.isLoading ||
+    positionalQuery.isLoading ||
     (playerIds.length > 0 && statsQuery.isLoading);
 
   const errors = [
@@ -142,11 +155,12 @@ export function useBestBets(filters, settings) {
 
     try {
       return runAlgorithmPipeline({
-        odds:           oddsQuery.data.data,
-        injuries:       injuriesQuery.data.data,
-        games:          scheduleQuery.data.data,
-        defensiveStats: defensiveQuery.data.data,
-        playerStats:    statsQuery.data,
+        odds:              oddsQuery.data.data,
+        injuries:          injuriesQuery.data.data,
+        games:             scheduleQuery.data.data,
+        defensiveStats:    defensiveQuery.data.data,
+        positionalMatchup: positionalQuery.data?.data ?? null,
+        playerStats:       statsQuery.data,
         filters,
         settings,
       });
@@ -160,6 +174,7 @@ export function useBestBets(filters, settings) {
     injuriesQuery.data,
     scheduleQuery.data,
     defensiveQuery.data,
+    positionalQuery.data,
     statsQuery.data,
     filters,
     settings,

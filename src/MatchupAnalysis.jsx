@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Chart, registerables } from 'chart.js'
 import { supabase } from './supabaseClient'
 Chart.register(...registerables)
- 
+
 const NBA_TEAMS = [
   { id: 1, full_name: 'Atlanta Hawks' },
   { id: 2, full_name: 'Boston Celtics' },
@@ -35,27 +35,27 @@ const NBA_TEAMS = [
   { id: 29, full_name: 'Utah Jazz' },
   { id: 30, full_name: 'Washington Wizards' },
 ]
- 
+
 const NBA_ABBR = {
   1:'ATL',2:'BOS',3:'BKN',4:'CHA',5:'CHI',6:'CLE',7:'DAL',8:'DEN',9:'DET',
   10:'GSW',11:'HOU',12:'IND',13:'LAC',14:'LAL',15:'MEM',16:'MIA',17:'MIL',
   18:'MIN',19:'NOP',20:'NYK',21:'OKC',22:'ORL',23:'PHI',24:'PHX',25:'POR',
   26:'SAC',27:'SAS',28:'TOR',29:'UTA',30:'WAS'
 }
- 
+
 const STAT_LABELS = {
   pts: 'PTS', reb: 'REB', ast: 'AST',
   stl: 'STL', blk: 'BLK', turnover: 'TOV', fg3m: '3PM'
 }
- 
+
 const ALL_STATS = ['pts', 'reb', 'ast', 'stl', 'blk', 'turnover', 'fg3m']
- 
+
 const POS_GROUPS = {
   Guards: p => p === 'G' || p === 'G-F',
   Wings:  p => p === 'F' || p === 'F-G' || p === 'F-C',
   Bigs:   p => p === 'C' || p === 'C-F',
 }
- 
+
 const WINDOW_OPTIONS = [
   { label: 'Last 5',  value: 5 },
   { label: 'Last 10', value: 10 },
@@ -64,12 +64,12 @@ const WINDOW_OPTIONS = [
   { label: 'Last 30', value: 30 },
   { label: 'Full season', value: 9999 },
 ]
- 
+
 function calcAvg(arr) {
   if (!arr.length) return null
   return arr.reduce((a, b) => a + b, 0) / arr.length
 }
- 
+
 function getGrade(pct) {
   if (pct >= 15) return { grade: 'A', color: '#3b6d11', bg: '#edf7e1', label: 'Easiest' }
   if (pct >= 5)  return { grade: 'B', color: '#5a8a1f', bg: '#f0f7e6', label: 'Easy' }
@@ -77,8 +77,7 @@ function getGrade(pct) {
   if (pct >= -15)return { grade: 'D', color: '#854f0b', bg: '#fef3e2', label: 'Tough' }
   return { grade: 'F', color: '#a32d2d', bg: '#fcebeb', label: 'Toughest' }
 }
- 
-// Dynamic window splits — always 4 clean whole-number columns
+
 function getWindowSplits(n) {
   if (n >= 9999) return [10, 20, 41, 82]
   const raw = [
@@ -87,12 +86,10 @@ function getWindowSplits(n) {
     Math.max(3, Math.round(n * 0.75)),
     n
   ]
-  // Deduplicate while preserving order
   const seen = new Set()
   return raw.filter(v => { if (seen.has(v)) return false; seen.add(v); return true })
 }
- 
-// Per-game-per-team average for a position group
+
 function calcPerGameByGroup(rows, posTest, statKey) {
   const byGameTeam = {}
   for (const s of rows) {
@@ -103,58 +100,65 @@ function calcPerGameByGroup(rows, posTest, statKey) {
   const vals = Object.values(byGameTeam)
   return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0
 }
- 
+
 const chartInstances = { Guards: { current: null }, Wings: { current: null }, Bigs: { current: null } }
- 
+
 export default function MatchupAnalysis() {
-  const [teamId, setTeamId]       = useState('1')
-  const [stat, setStat]           = useState('pts')
-  const [season, setSeason]       = useState('2025')
-  const [window_, setWindow]      = useState(9999)
-  const [gameType, setGameType]   = useState('all') // 'regular' | 'playoffs'
-  const [homeAway, setHomeAway]   = useState('all')     // 'all' | 'home' | 'away'
- 
-  const [loading, setLoading]     = useState(false)
-  const [status, setStatus]       = useState('')
-  const [rawData, setRawData]     = useState(null) // { allOppStats, allLeagueStats, teamGamesSorted, leagueTeamData }
- 
-  const guardsRef = useRef(null)
-  const wingsRef  = useRef(null)
-  const bigsRef   = useRef(null)
-  const leagueChartRef  = useRef(null)
+  const [teamId, setTeamId]     = useState('1')
+  const [stat, setStat]         = useState('pts')
+  const [season, setSeason]     = useState('2025')
+  const [window_, setWindow]    = useState(9999)
+  const [gameType, setGameType] = useState('all')
+  const [homeAway, setHomeAway] = useState('all')
+  const [loading, setLoading]   = useState(false)
+  const [status, setStatus]     = useState('')
+  const [rawData, setRawData]   = useState(null)
+
+  const guardsRef      = useRef(null)
+  const wingsRef       = useRef(null)
+  const bigsRef        = useRef(null)
+  const leagueChartRef = useRef(null)
   const leagueChartInst = useRef(null)
   const chartRefs = { Guards: guardsRef, Wings: wingsRef, Bigs: bigsRef }
-  const isMobile  = window.innerWidth <= 768
+  const isMobile = window.innerWidth <= 768
   const barChartHeight = isMobile ? 90 : 110
- 
-  // ── Load raw data from Supabase ──────────────────────────────────────────
+
   const loadData = useCallback(async () => {
     if (!teamId) return
     setLoading(true)
     setRawData(null)
     setStatus('Loading games…')
- 
+
     try {
       const tid = parseInt(teamId)
       const seasonInt = parseInt(season)
- 
-      // 1. Get all Final games for this season
-      const { data: allGames, error: gErr } = await supabase
-        .from('games')
-        .select('id, date, postseason, home_team_id, visitor_team_id')
-        .eq('season', seasonInt)
-        .eq('status', 'Final')
-        .order('date', { ascending: false })
-      if (gErr) throw new Error(gErr.message)
- 
-      // Team's games sorted newest first
+
+      // 1. Get all Final games for this season — paginated to bypass Supabase row cap
+      let allGames = []
+      let gFrom = 0
+      const gPageSize = 500
+      while (true) {
+        const { data: page, error: gErr } = await supabase
+          .from('games')
+          .select('id, date, postseason, home_team_id, visitor_team_id')
+          .eq('season', seasonInt)
+          .eq('status', 'Final')
+          .order('date', { ascending: false })
+          .range(gFrom, gFrom + gPageSize - 1)
+        if (gErr) throw new Error(gErr.message)
+        if (!page.length) break
+        allGames = allGames.concat(page)
+        if (page.length < gPageSize) break
+        gFrom += gPageSize
+      }
+
+      console.log('[MatchupAnalysis] allGames loaded:', allGames.length)
+
       const teamGamesSorted = allGames.filter(g =>
         g.home_team_id === tid || g.visitor_team_id === tid
       )
- 
-      // All game IDs for league baseline
-      const allGameIds = allGames.map(g => g.id)
- 
+      console.log('[MatchupAnalysis] team games:', teamGamesSorted.length)
+
       // 2. Fetch opponent stats for all of team's games
       setStatus('Loading opponent stats…')
       let allOppStats = []
@@ -167,12 +171,14 @@ export default function MatchupAnalysis() {
           .select('*')
           .in('game_id', chunk)
           .neq('team_id', tid)
+          .limit(5000)
         if (error) throw new Error(error.message)
         allOppStats = allOppStats.concat(data)
       }
       allOppStats = allOppStats.filter(s => s.min && s.min !== '0:00' && s.min !== '00')
- 
-      // 3. Fetch full league stats for baseline
+      console.log('[MatchupAnalysis] opp stats rows:', allOppStats.length)
+
+      // 3. Fetch full league stats for baseline (paginated)
       setStatus('Loading league baseline…')
       let allLeagueStats = []
       let from = 0
@@ -189,9 +195,9 @@ export default function MatchupAnalysis() {
         if (page.length < pageSize) break
         from += pageSize
       }
- 
-      // 4. Compute team scoring averages per team (for opponent strength filter)
-      // For each team, compute their avg stat per game across the season
+      console.log('[MatchupAnalysis] league stats rows:', allLeagueStats.length)
+
+      // 4. Team scoring averages
       const teamGameTotals = {}
       for (const s of allLeagueStats) {
         if (!s.team_id || !s.game_id) continue
@@ -205,16 +211,10 @@ export default function MatchupAnalysis() {
         teamScoresByGame[e.teamId].push(e.total)
       }
       const teamAvgScores = Object.entries(teamScoresByGame)
-        .map(([tid, vals]) => ({ teamId: parseInt(tid), avg: calcAvg(vals) ?? 0 }))
-        .sort((a, b) => b.avg - a.avg) // sorted best to worst scorers
- 
-      // 5. League team rankings for bottom chart
-      const gameMap = {}
-      for (const e of Object.values(teamGameTotals)) {
-        if (!gameMap[e.gameId]) gameMap[e.gameId] = []
-        gameMap[e.gameId]?.push(e)
-      }
-      // Rebuild gameMap properly
+        .map(([t, vals]) => ({ teamId: parseInt(t), avg: calcAvg(vals) ?? 0 }))
+        .sort((a, b) => b.avg - a.avg)
+
+      // 5. League team rankings
       const gameMapFull = {}
       for (const s of allLeagueStats) {
         if (!s.team_id || !s.game_id) continue
@@ -242,16 +242,8 @@ export default function MatchupAnalysis() {
         .map(([name, vals]) => ({ name, avg: calcAvg(vals) ?? 0 }))
         .filter(t => t.avg > 0)
         .sort((a, b) => b.avg - a.avg)
- 
-      setRawData({
-        allOppStats,
-        allLeagueStats,
-        teamGamesSorted,
-        allGames,
-        leagueTeamData,
-        teamAvgScores,
-        tid,
-      })
+
+      setRawData({ allOppStats, allLeagueStats, teamGamesSorted, allGames, leagueTeamData, teamAvgScores, tid })
       setStatus('')
     } catch (err) {
       console.error(err)
@@ -259,62 +251,44 @@ export default function MatchupAnalysis() {
     }
     setLoading(false)
   }, [teamId, season, stat])
- 
+
   useEffect(() => { loadData() }, [loadData])
- 
-  // ── Derived filtered data ────────────────────────────────────────────────
+
   const derived = useMemo(() => {
     if (!rawData) return null
-    const { allOppStats, allLeagueStats, teamGamesSorted, allGames, leagueTeamData, teamAvgScores, tid } = rawData
- 
-    // Build game lookup map
-    const gameById = {}
-    for (const g of allGames) gameById[g.id] = g
- 
-    // Apply game type filter to team games
+    const { allOppStats, allLeagueStats, teamGamesSorted, allGames, tid } = rawData
+
     let filteredTeamGames = teamGamesSorted.filter(g => {
       if (gameType === 'regular') return !g.postseason
       if (gameType === 'playoffs') return g.postseason
-      return true // 'all' — includes both
+      return true
     })
- 
-    // Apply home/away filter
     filteredTeamGames = filteredTeamGames.filter(g => {
       if (homeAway === 'home') return g.home_team_id === tid
       if (homeAway === 'away') return g.visitor_team_id === tid
       return true
     })
- 
-    // Apply window
-    const windowedGames = window_ >= 9999
-      ? filteredTeamGames
-      : filteredTeamGames.slice(0, window_)
+
+    const windowedGames = window_ >= 9999 ? filteredTeamGames : filteredTeamGames.slice(0, window_)
     const windowedGameIds = new Set(windowedGames.map(g => g.id))
- 
- 
-    // Filter opp stats to windowed games + opponent strength
     const oppStats = allOppStats.filter(s => windowedGameIds.has(s.game_id))
- 
-    // For league baseline — apply same game type filter
+
     const leagueGameIds = new Set(
-     allGames.filter(g => {
+      allGames.filter(g => {
         if (gameType === 'regular') return !g.postseason
         if (gameType === 'playoffs') return g.postseason
-        return true // 'all'
-      })
-        .map(g => g.id)
+        return true
+      }).map(g => g.id)
     )
     const leagueStats = allLeagueStats.filter(s => leagueGameIds.has(s.game_id))
- 
-    // Calculate grades
+
     const oppByGroup = {}
     const leagueByGroup = {}
     for (const [group, test] of Object.entries(POS_GROUPS)) {
-      oppByGroup[group] = calcPerGameByGroup(oppStats, test, stat)
+      oppByGroup[group]    = calcPerGameByGroup(oppStats, test, stat)
       leagueByGroup[group] = calcPerGameByGroup(leagueStats, test, stat)
     }
- 
-    // Top players
+
     const playerMap = {}
     for (const s of oppStats) {
       const name = s.player_first_name ? `${s.player_first_name} ${s.player_last_name}` : null
@@ -326,91 +300,64 @@ export default function MatchupAnalysis() {
       }
     }
     const topPlayers = Object.values(playerMap)
-  .map(p => ({ ...p, avg: p.totals[stat] / p.games }))
-  .sort((a, b) => b.avg - a.avg)
-  .slice(0, 5)
- 
-    // Game IDs sorted by date for trend table
+      .map(p => ({ ...p, avg: p.totals[stat] / p.games }))
+      .sort((a, b) => b.avg - a.avg)
+      .slice(0, 5)
+
     const gameIdsSortedByDate = windowedGames.map(g => g.id)
- 
-  // Recalculate league team rankings — each team's last N games
-  // First build a map of which games each team played, sorted newest first
-  const teamGamesMap = {}
-  for (const g of allGames) {
-    if (gameType === 'regular' && g.postseason) continue
-    if (gameType === 'playoffs' && !g.postseason) continue
-    // 'all' passes through
-    
-    const addGame = (tid) => {
-      if (!teamGamesMap[tid]) teamGamesMap[tid] = []
-      teamGamesMap[tid].push(g)
-    }
-    // Apply home/away filter per team
-    if (homeAway === 'all') {
-      addGame(g.home_team_id)
-      addGame(g.visitor_team_id)
-    } else if (homeAway === 'home') {
-      addGame(g.home_team_id)
-    } else if (homeAway === 'away') {
-      addGame(g.visitor_team_id)
-    }
-  }
 
-  // For each team get their last N game IDs
-  const teamWindowGameIds = {}
-  for (const [teamIdStr, games] of Object.entries(teamGamesMap)) {
-    const sorted = [...games].sort((a, b) => new Date(b.date) - new Date(a.date))
-    const windowed = window_ >= 9999 ? sorted : sorted.slice(0, window_)
-    teamWindowGameIds[parseInt(teamIdStr)] = new Set(windowed.map(g => g.id))
-  }
-
-  // Build stat totals per game per team, only within each team's window
-  const filteredGameMapFull = {}
-  for (const s of allLeagueStats) {
-    if (!s.team_id || !s.game_id) continue
-    const teamWindow = teamWindowGameIds[s.team_id]
-    if (!teamWindow || !teamWindow.has(s.game_id)) continue
-    const key = `${s.game_id}__${s.team_id}`
-    if (!filteredGameMapFull[key]) filteredGameMapFull[key] = { teamId: s.team_id, gameId: s.game_id, abbr: s.team_abbreviation, total: 0 }
-    filteredGameMapFull[key].total += s[stat] ?? 0
-  }
-
-  // For each game find both teams and attribute allowed points to the defending team
-  const filteredGameMapByGame = {}
-  for (const e of Object.values(filteredGameMapFull)) {
-    if (!filteredGameMapByGame[e.gameId]) filteredGameMapByGame[e.gameId] = []
-    filteredGameMapByGame[e.gameId].push(e)
-  }
-  const filteredGamesByTeam = {}
-  for (const teams of Object.values(filteredGameMapByGame)) {
-    if (teams.length !== 2) continue
-    const [a, b] = teams
-    const aKey = a.abbr ?? String(a.teamId)
-    const bKey = b.abbr ?? String(b.teamId)
-    if (!filteredGamesByTeam[aKey]) filteredGamesByTeam[aKey] = []
-    if (!filteredGamesByTeam[bKey]) filteredGamesByTeam[bKey] = []
-    filteredGamesByTeam[aKey].push(b.total)
-    filteredGamesByTeam[bKey].push(a.total)
-  }
-  const filteredLeagueTeamData = Object.entries(filteredGamesByTeam)
-    .map(([name, vals]) => ({ name, avg: calcAvg(vals) ?? 0 }))
-    .filter(t => t.avg > 0)
-    .sort((a, b) => b.avg - a.avg)
-    
-  
-  return {
-      oppByGroup,
-      leagueByGroup,
-      oppStats,
-      leagueStats,
-      topPlayers,
-      gameIdsSortedByDate,
-      leagueTeamData: filteredLeagueTeamData,  // ← changed
-      gamesInWindow: windowedGames.length,
+    // League team rankings with per-team window
+    const teamGamesMap = {}
+    for (const g of allGames) {
+      if (gameType === 'regular' && g.postseason) continue
+      if (gameType === 'playoffs' && !g.postseason) continue
+      const addGame = (t) => {
+        if (!teamGamesMap[t]) teamGamesMap[t] = []
+        teamGamesMap[t].push(g)
+      }
+      if (homeAway === 'all') { addGame(g.home_team_id); addGame(g.visitor_team_id) }
+      else if (homeAway === 'home') addGame(g.home_team_id)
+      else if (homeAway === 'away') addGame(g.visitor_team_id)
     }
+    const teamWindowGameIds = {}
+    for (const [teamIdStr, games] of Object.entries(teamGamesMap)) {
+      const sorted = [...games].sort((a, b) => new Date(b.date) - new Date(a.date))
+      const windowed = window_ >= 9999 ? sorted : sorted.slice(0, window_)
+      teamWindowGameIds[parseInt(teamIdStr)] = new Set(windowed.map(g => g.id))
+    }
+    const filteredGameMapFull = {}
+    for (const s of allLeagueStats) {
+      if (!s.team_id || !s.game_id) continue
+      const teamWindow = teamWindowGameIds[s.team_id]
+      if (!teamWindow?.has(s.game_id)) continue
+      const key = `${s.game_id}__${s.team_id}`
+      if (!filteredGameMapFull[key]) filteredGameMapFull[key] = { teamId: s.team_id, gameId: s.game_id, abbr: s.team_abbreviation, total: 0 }
+      filteredGameMapFull[key].total += s[stat] ?? 0
+    }
+    const filteredGameMapByGame = {}
+    for (const e of Object.values(filteredGameMapFull)) {
+      if (!filteredGameMapByGame[e.gameId]) filteredGameMapByGame[e.gameId] = []
+      filteredGameMapByGame[e.gameId].push(e)
+    }
+    const filteredGamesByTeam = {}
+    for (const teams of Object.values(filteredGameMapByGame)) {
+      if (teams.length !== 2) continue
+      const [a, b] = teams
+      const aKey = a.abbr ?? String(a.teamId)
+      const bKey = b.abbr ?? String(b.teamId)
+      if (!filteredGamesByTeam[aKey]) filteredGamesByTeam[aKey] = []
+      if (!filteredGamesByTeam[bKey]) filteredGamesByTeam[bKey] = []
+      filteredGamesByTeam[aKey].push(b.total)
+      filteredGamesByTeam[bKey].push(a.total)
+    }
+    const filteredLeagueTeamData = Object.entries(filteredGamesByTeam)
+      .map(([name, vals]) => ({ name, avg: calcAvg(vals) ?? 0 }))
+      .filter(t => t.avg > 0)
+      .sort((a, b) => b.avg - a.avg)
+
+    return { oppByGroup, leagueByGroup, oppStats, leagueStats, topPlayers, gameIdsSortedByDate, leagueTeamData: filteredLeagueTeamData, gamesInWindow: windowedGames.length }
   }, [rawData, gameType, homeAway, window_, stat])
- 
-  // ── Charts ───────────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (!derived) return
     const { oppByGroup, leagueByGroup } = derived
@@ -421,13 +368,9 @@ export default function MatchupAnalysis() {
       const oppVal = oppByGroup[group] ?? 0
       const lgVal  = leagueByGroup[group] || 1
       const pct    = parseFloat(((oppVal - lgVal) / lgVal * 100).toFixed(1))
-      const color = getGrade(pct).color
       chartInstances[group].current = new Chart(ref, {
         type: 'bar',
-        data: {
-          labels: [group],
-          datasets: [{ data: [pct], backgroundColor: color, borderRadius: 4, barThickness: 56 }]
-        },
+        data: { labels: [group], datasets: [{ data: [pct], backgroundColor: getGrade(pct).color, borderRadius: 4, barThickness: 56 }] },
         options: {
           responsive: true, maintainAspectRatio: false,
           plugins: { legend: { display: false } },
@@ -439,7 +382,7 @@ export default function MatchupAnalysis() {
       })
     }
   }, [derived])
- 
+
   useEffect(() => {
     if (!derived?.leagueTeamData || !leagueChartRef.current) return
     if (leagueChartInst.current) leagueChartInst.current.destroy()
@@ -461,10 +404,9 @@ export default function MatchupAnalysis() {
       }
     })
   }, [derived, teamId])
- 
+
   const selectedTeam = NBA_TEAMS.find(t => String(t.id) === teamId)
- 
-  // Best/worst matchup
+
   let bestMatchup = null, worstMatchup = null
   if (derived) {
     const { oppByGroup, leagueByGroup } = derived
@@ -475,18 +417,9 @@ export default function MatchupAnalysis() {
     bestMatchup  = entries.reduce((a, b) => a.pct > b.pct ? a : b)
     worstMatchup = entries.reduce((a, b) => a.pct < b.pct ? a : b)
   }
- 
-  // Toggle button style helper
-  const toggleBtn = (active) => ({
-    padding: '5px 12px', fontSize: 12, fontWeight: active ? 700 : 400,
-    border: '1px solid #ddd', borderRadius: 6, cursor: 'pointer',
-    background: active ? '#185fa5' : 'white',
-    color: active ? 'white' : '#555',
-  })
- 
+
   return (
     <div>
-      {/* ── Controls ── */}
       <div className="ctrl-bar" style={{ marginBottom: '0.5rem', gap: 8 }}>
         <div className="ctrl-group">
           <div className="ctrl-label">Opponent team</div>
@@ -534,12 +467,11 @@ export default function MatchupAnalysis() {
           </select>
         </div>
       </div>
- 
+
       {loading && <div className="loading"><p>{status}</p></div>}
       {!loading && status && <p className="empty">{status}</p>}
- 
+
       {!loading && derived && <>
-        {/* ── Grade cards ── */}
         <div className="grade-grid" style={{ width: '100%' }}>
           {Object.keys(POS_GROUPS).map(group => {
             const opp = derived.oppByGroup[group] ?? 0
@@ -571,13 +503,10 @@ export default function MatchupAnalysis() {
                 <div style={{ fontSize: 11, color: '#888' }}>{worstMatchup.pct >= 0 ? '+' : ''}{worstMatchup.pct.toFixed(1)}% vs avg</div>
               </div>
             )}
-            <div style={{ fontSize: 10, color: '#bbb', marginTop: 4 }}>
-              {derived.gamesInWindow} games
-            </div>
+            <div style={{ fontSize: 10, color: '#bbb', marginTop: 4 }}>{derived.gamesInWindow} games</div>
           </div>
         </div>
- 
-        {/* ── Bar charts ── */}
+
         <div className="chart-grid" style={{ width: '100%' }}>
           {Object.keys(POS_GROUPS).map(group => (
             <div key={group} className="chart-card" style={{ marginBottom: 0 }}>
@@ -588,13 +517,11 @@ export default function MatchupAnalysis() {
             </div>
           ))}
         </div>
- 
-        {/* ── Trend table + Top players ── */}
+
         <div className="bottom-grid">
           {(() => {
             const { oppStats: opp, leagueStats: lg, gameIdsSortedByDate } = derived
             const splits = getWindowSplits(Math.min(window_, derived.gamesInWindow))
- 
             return (
               <div className="chart-card" style={{ marginBottom: 0, padding: '0.6rem 0.75rem' }}>
                 <div className="chart-title">Defensive trend — {STAT_LABELS[stat]} allowed vs league avg</div>
@@ -603,9 +530,7 @@ export default function MatchupAnalysis() {
                     <tr style={{ borderBottom: '1px solid #eee' }}>
                       <th style={{ textAlign: 'left', padding: '4px 6px', color: '#888', fontSize: 11 }}>Position</th>
                       {splits.map(s => (
-                        <th key={s} className={`trend-col-${s}`} style={{ textAlign: 'right', padding: '4px 6px', color: '#888', fontSize: 11 }}>
-                          Last {s}
-                        </th>
+                        <th key={s} className={`trend-col-${s}`} style={{ textAlign: 'right', padding: '4px 6px', color: '#888', fontSize: 11 }}>Last {s}</th>
                       ))}
                     </tr>
                   </thead>
@@ -618,7 +543,6 @@ export default function MatchupAnalysis() {
                         lgByGameTeam[key] = (lgByGameTeam[key] ?? 0) + (s[stat] ?? 0)
                       }
                       const lgAvg = calcAvg(Object.values(lgByGameTeam))
- 
                       return (
                         <tr key={group} style={{ borderBottom: '1px solid #f5f5f5' }}>
                           <td style={{ padding: '6px 6px', fontWeight: 700, color: '#555' }}>{group}</td>
@@ -626,8 +550,7 @@ export default function MatchupAnalysis() {
                             const windowGameIds = new Set(gameIdsSortedByDate.slice(0, splitN))
                             const oppByGameTeam = {}
                             for (const s of opp) {
-                              if (!windowGameIds.has(s.game_id) || !test(s.player_position)) continue
-                              if (!s.game_id || !s.team_id) continue
+                              if (!windowGameIds.has(s.game_id) || !test(s.player_position) || !s.game_id || !s.team_id) continue
                               const key = `${s.game_id}__${s.team_id}`
                               oppByGameTeam[key] = (oppByGameTeam[key] ?? 0) + (s[stat] ?? 0)
                             }
@@ -649,13 +572,11 @@ export default function MatchupAnalysis() {
                     })}
                   </tbody>
                 </table>
-                <div style={{ fontSize: 11, color: '#aaa', marginTop: 8 }}>
-                  ↑ green = easier · ↓ red = tougher · based on {derived.gamesInWindow} games
-                </div>
+                <div style={{ fontSize: 11, color: '#aaa', marginTop: 8 }}>↑ green = easier · ↓ red = tougher · based on {derived.gamesInWindow} games</div>
               </div>
             )
           })()}
- 
+
           <div className="chart-card" style={{ marginBottom: 0, padding: '0.6rem 0.75rem' }}>
             <div className="chart-title">Top {STAT_LABELS[stat]} scorers vs {selectedTeam?.full_name}</div>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
@@ -684,8 +605,7 @@ export default function MatchupAnalysis() {
             </table>
           </div>
         </div>
- 
-        {/* ── All teams chart ── */}
+
         {derived.leagueTeamData && (
           <div className="chart-card" style={{ marginTop: '0.5rem', marginBottom: 0 }}>
             <div className="chart-title">All teams — avg {STAT_LABELS[stat]} allowed (worst to best)</div>
@@ -697,9 +617,9 @@ export default function MatchupAnalysis() {
             </div>
           </div>
         )}
- 
+
         <p style={{ fontSize: 11, color: '#aaa', marginTop: 8 }}>
-          {derived.gamesInWindow} games · {gameType === 'regular' ? 'Regular season' : 'Playoffs'} · {homeAway === 'all' ? 'Home + Away' : homeAway === 'home' ? 'Home only' : 'Away only'}s
+          {derived.gamesInWindow} games · {gameType === 'regular' ? 'Regular season' : 'Playoffs'} · {homeAway === 'all' ? 'Home + Away' : homeAway === 'home' ? 'Home only' : 'Away only'}
           · Green = easier matchup · Red = tougher
         </p>
       </>}

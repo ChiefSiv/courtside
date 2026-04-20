@@ -8,11 +8,19 @@ import { supabase } from './supabaseClient.js';
 
 export async function logTopPicks(straightBets, parlayLegs, longshots) {
   const today = new Date().toISOString().split('T')[0];
-  const toLog = [
+  const allPicks = [
     ...straightBets.slice(0, 3).map(p => buildPickRow(p, today)),
     ...parlayLegs.slice(0, 5).map(p => buildPickRow(p, today)),
     ...longshots.slice(0, 3).map(p => buildPickRow(p, today)),
   ];
+
+  // Deduplicate by id — same player can appear in multiple sections
+  const seen = new Set();
+  const toLog = allPicks.filter(p => {
+    if (seen.has(p.id)) return false;
+    seen.add(p.id);
+    return true;
+  });
 
   if (!toLog.length) return;
 
